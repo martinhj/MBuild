@@ -2,21 +2,21 @@ const io = require('socket.io')()
 const intercept = require('intercept-stdout')
 const client_io = require('socket.io-client')
 
-const connectClient = () => {
 
-    io.on('connection', (socket) => {
-        socket.on('stdout', (msg) => {
-            msg = removeTrailingNewLine(msg)
-            io.sockets.emit(`stdout`, msg)
-        })
-        socket.on('stderr', (msg) => {
-            msg = removeTrailingNewLine(msg)
-            io.sockets.emit(`stderr`, msg)
-        })
+io.on('connection', (socket) => {
+    socket.on('stdout', (msg) => {
+        msg = removeTrailingNewLine(msg)
+        io.sockets.emit(`stdout`, msg)
     })
+    socket.on('stderr', (msg) => {
+        msg = removeTrailingNewLine(msg)
+        io.sockets.emit(`stderr`, msg)
+    })
+})
 
-    io.listen(3334)
+io.listen(3334)
 
+const connectClient = () => {
     /* client_socket.on('disconnect', () => {
         // console.log('disconnecting...')
     }) */
@@ -25,17 +25,12 @@ const connectClient = () => {
     // console.log(`got here...`)
 
     const unhook_intercept = intercept((txt) => {
-        // Gather data until connect?
         client_socket.emit('stdout', txt)
         return ''
-        // return txt
     }, (error_txt) => {
         client_socket.emit('stderr', error_txt)
         return ''
-        // return error_txt
     })
-
-    // client_socket.emit('stdout', 'trying to emit something')
 
     return new Promise((resolve, reject) => {
         client_socket.on('connect', () => {
