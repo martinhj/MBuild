@@ -16,7 +16,6 @@ const socket = async () => {
     setTimeout(() => {
         console.log(`trying to emit something else later`)
         console.error(`trying to emit an error later`)
-        // client_socket.emit('stdout', 'trying to emit something else later')
     }, 3000)
 }
 socket()
