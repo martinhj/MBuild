@@ -2,15 +2,31 @@ const io = require("socket.io")()
 const intercept = require("intercept-stdout")
 const client_io = require("socket.io-client")
 const { removeTrailingNewLine } = require("./lib/remove-trailing-new-line.js")
+const messageQueue = []
+const errorQueue = []
 
 io.on("connection", socket => {
+  const connectionMessageQueue = messageQueue.slice(0)
+  while (connectionMessageQueue.length) {
+    socket.emit(`stdout`, connectionMessageQueue.shift())
+  }
+  const connectionErrorQueue = errorQueue.slice(0)
+  while (connectionErrorQueue.length) {
+    socket.emit(`stdout`, connectionErrorQueue.shift())
+  }
   socket.on("stdout", msg => {
     msg = removeTrailingNewLine(msg)
-    io.sockets.emit(`stdout`, msg)
+    messageQueue.push(msg)
+    connectionMessageQueue.push(msg)
+    socket.broadcast.emit(`stdout`, connectionMessageQueue.shift())
+    // io.sockets.emit(`stdout`, msg)
   })
   socket.on("stderr", msg => {
     msg = removeTrailingNewLine(msg)
-    io.sockets.emit(`stderr`, msg)
+    errorQueue.push(msg)
+    connectionErrorQueue.push(msg)
+    socket.broadcast.emit(`stderr`, connectionErrorQueue.shift())
+    // io.sockets.emit(`stderr`, msg)
   })
 })
 
@@ -22,11 +38,11 @@ const connectClient = () => {
   const unhook_intercept = intercept(
     txt => {
       client_socket.emit("stdout", txt)
-      return ""
+      return txt
     },
     error_txt => {
       client_socket.emit("stderr", error_txt)
-      return ""
+      return error_txt
     }
   )
 
