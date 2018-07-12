@@ -3,45 +3,54 @@ const intercept = require("intercept-stdout")
 const client_io = require("socket.io-client")
 const { removeTrailingNewLine } = require("./lib/remove-trailing-new-line.js")
 const messageQueue = []
-const errorQueue = []
+
+const STDOUT = 'stdout'
+const STDERR = 'stderr'
+const STDMSG = 'stdmsg'
 
 io.on("connection", socket => {
   const connectionMessageQueue = messageQueue.slice(0)
-  while (connectionMessageQueue.length) {
-    socket.emit(`stdout`, connectionMessageQueue.shift())
+  const emitMessage = (message) => {
+    socket.emit(STDMSG, connectionMessageQueue.shift())
   }
-  const connectionErrorQueue = errorQueue.slice(0)
-  while (connectionErrorQueue.length) {
-    socket.emit(`stdout`, connectionErrorQueue.shift())
+  // find the last end-of-message-stream-token
+    // start at the position before the last and traverse queue backwards
+    // @ the first found end-of-message-stream-token, find pos in array and
+    // return array of elems from this pos to end
+  while (connectionMessageQueue.length) { // while (not reached end-of-message-stream-token)
+    connectionMessageQueue.length &&
+      emitMessage(connectionMessageQueue.shift())
+      // socket.emit(STDMSG, connectionMessageQueue.shift())
   }
-  socket.on("stdout", msg => {
-    msg = removeTrailingNewLine(msg)
-    messageQueue.push(msg)
-    connectionMessageQueue.push(msg)
-    socket.broadcast.emit(`stdout`, connectionMessageQueue.shift())
-    // io.sockets.emit(`stdout`, msg)
-  })
-  socket.on("stderr", msg => {
-    msg = removeTrailingNewLine(msg)
-    errorQueue.push(msg)
-    connectionErrorQueue.push(msg)
-    socket.broadcast.emit(`stderr`, connectionErrorQueue.shift())
-    // io.sockets.emit(`stderr`, msg)
-  })
 })
+
+io.of('/supplier-channel')
+  .on('connection', socket => {
+    socket.on(STDOUT, msg => {
+      messageQueue.push({type: STDOUT, message: removeTrailingNewLine(msg)})
+      // socket.broadcast.emit(STDMSG, {type: STDOUT, message: removeTrailingNewLine(msg)})
+    })
+    socket.on(STDERR, msg => {
+      messageQueue.push({type: STDERR, message: removeTrailingNewLine(msg)})
+    })
+
+  })
+
 
 io.listen(3334)
 
 const connectClient = () => {
-  const client_socket = client_io.connect("http://localhost:3334")
+  const client_socket = client_io.connect("http://localhost:3334/supplier-channel")
 
+  // TODO add possibility for middleware translating, filtering etc. output of
+  // build application
   const unhook_intercept = intercept(
     txt => {
-      client_socket.emit("stdout", txt)
+      client_socket.emit(STDOUT, txt)
       return txt
     },
     error_txt => {
-      client_socket.emit("stderr", error_txt)
+      client_socket.emit(STDERR, error_txt)
       return error_txt
     }
   )
