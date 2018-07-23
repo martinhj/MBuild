@@ -8,6 +8,7 @@ const STDOUT = 'stdout'
 const STDERR = 'stderr'
 const STDMSG = 'stdmsg'
 
+// emit messages to client
 io.on("connection", socket => {
   const connectionMessageQueue = messageQueue.slice(0)
   const emitMessage = (message) => {
@@ -24,6 +25,7 @@ io.on("connection", socket => {
   }
 })
 
+// recieve supply messages from compiler
 io.of('/supplier-channel')
   .on('connection', socket => {
     socket.on(STDOUT, msg => {
@@ -39,6 +41,7 @@ io.of('/supplier-channel')
 
 io.listen(3334)
 
+// send messages to server
 const connectClient = () => {
   const client_socket = client_io.connect("http://localhost:3334/supplier-channel")
 
