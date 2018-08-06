@@ -26,6 +26,7 @@ const oldstdout = process.stdout
 const STDOUT = "stdout"
 const STDERR = "stderr"
 
+monkeyC = new monkeyConsole()
 function Mbuild(callback) {
     this.callback = callback
     this.server = net.createServer(async socket => {
@@ -60,6 +61,9 @@ function Mbuild(callback) {
             }
         })(process.stderr.write) */
 
+        monkeyC.hijack()
+        monkeyC.stdout.pipe(socket)
+
         console.log(`first server test`)
         console.log(`second server test (before release)`)
         console.log(`third server test (after release)`)
@@ -71,6 +75,7 @@ function Mbuild(callback) {
         // process.stdout.write = oldStdoutWrite
         // process.stderr.write = oldStderrWrite
 
+        monkeyC.release()
         socket.end()
 
     })
