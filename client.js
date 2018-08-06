@@ -1,33 +1,29 @@
+const { socketName } = require("./shared/socketName")
+const net = require("net")
+
 const STDOUT = 'stdout'
 const STDERR = 'stderr'
-const STDMSG = 'stdmsg'
 
-const io = require('socket.io-client')
+const clientSocket = new net.Socket()
 
-const socket = io.connect('http://localhost:3334')
+clientSocket.on('error', (e) => { // handle error trying to talk to server
+    console.error(e)
+    process.exit()
+})
 
-socket.on('connect', () => {
-    console.log('connecting')
+// something like this to translate to stdout / stderr:
+// clientSocket.pipe(STREAM WRITE FUNCTIONALITY(split up stream to stdout and
+// stderr))
+clientSocket.pipe(process.stdout)
+
+clientSocket.on('finish', () => {console.log('got finish...')})
+
+clientSocket.connect({path: socketName}, function() { 
+    console.log('got connection...')
 })
-socket.on(STDOUT, (message) => {
-    console.log(message)
-})
-socket.on(STDERR, (message) => {
-    console.error(message)
-})
-socket.on(STDMSG, (messagePacket) => {
-    switch (messagePacket.type) {
-        case STDOUT:
-            console.log(messagePacket.message)
-            break;
-        case STDERR:
-            console.error(messagePacket.message)
-            break;
-    }
-})
-socket.on('endOfStream', () => {
-    socket.close()
-})
-socket.on('disconnect', () => {
-    console.log('disconnecting...')
+
+// clean up on nodemon restart
+process.once("SIGUSR2", () => {
+    clientSocket.close()
+    process.kill(process.pid, "SIGUSR2")
 })

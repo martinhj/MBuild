@@ -1,77 +1,109 @@
-const io = require("socket.io")()
+// Do I need following to catch rest of exceptions?
+/* process.on('uncaughtException', function(err) {
+    console.error((err && err.stack) ? err.stack : err);
+}); */
+// (https://stackoverflow.com/questions/32719923/redirecting-stdout-to-file-nodejs#answer-35542360)
+
+// const stdOutSocketName = require("./shared/socketName")
+// const errOutSocketName = require("./shared/socketName")
+const { outStream } = require("./outputReflector.js")
+const { socketName } = require("./shared/socketName")
+
+const { Writable } = require('stream');
+
+const monkeyConsole = require("./lib/monkeyConsole")
+
+const net = require("net")
+const path = require("path")
+const os = require("os")
+const fs = require("fs")
+
 const intercept = require("intercept-stdout")
-const client_io = require("socket.io-client")
 const { removeTrailingNewLine } = require("./lib/remove-trailing-new-line.js")
-const messageQueue = []
 
-const STDOUT = 'stdout'
-const STDERR = 'stderr'
-const STDMSG = 'stdmsg'
+const oldstdout = process.stdout
 
-// emit messages to client
-io.on("connection", socket => {
-  const connectionMessageQueue = messageQueue.slice(0)
-  const emitMessage = (message) => {
-    socket.emit(STDMSG, connectionMessageQueue.shift())
-  }
-  // find the last end-of-message-stream-token
-    // start at the position before the last and traverse queue backwards
-    // @ the first found end-of-message-stream-token, find pos in array and
-    // return array of elems from this pos to end
-  while (connectionMessageQueue.length) { // while (not reached end-of-message-stream-token)
-    connectionMessageQueue.length &&
-      emitMessage(connectionMessageQueue.shift())
-      // socket.emit(STDMSG, connectionMessageQueue.shift())
-  }
-})
+const STDOUT = "stdout"
+const STDERR = "stderr"
 
-// recieve supply messages from compiler
-io.of('/supplier-channel')
-  .on('connection', socket => {
-    socket.on(STDOUT, msg => {
-      messageQueue.push({type: STDOUT, message: removeTrailingNewLine(msg)})
-      // socket.broadcast.emit(STDMSG, {type: STDOUT, message: removeTrailingNewLine(msg)})
+function Mbuild(callback) {
+    this.callback = callback
+    this.server = net.createServer(async socket => {
+        // for debugging
+        console.log("Mbuild: client connected...")
+        // for debugging
+        socket.on("end", () => {
+            console.log("Mbuild: client disconnected...")
+        })
+
+        // const unhookIntercept = this.intercept(writeMessage)
+
+        // inspired by https://gist.github.com/benbuckman/2758563
+        // and https://github.com/sfarthin/intercept-stdout#readme
+
+        // const oldStdoutWrite = process.stdout.write
+        // const oldStderrWrite = process.stderr.write
+
+        /* process.stdout.write = (function(write) {
+            return function(chunk, encoding, fd) {
+                const args = Array.from(arguments)
+                socket.write(chunk)
+                write.apply(process.stdout, args);
+            };
+        }(process.stdout.write)) */
+
+        /* process.stderr.write = (write => {
+            return (chunk, encoding, fd) => {
+                const args = Array.from(arguments)
+                socket.write(chunk)
+                write.apply(process.stderr, args)
+            }
+        })(process.stderr.write) */
+
+        console.log(`first server test`)
+        console.log(`second server test (before release)`)
+        console.log(`third server test (after release)`)
+
+        await callback()
+
+        // Push `null` to stream to end the streams?
+        console.log('ending soon')
+        // process.stdout.write = oldStdoutWrite
+        // process.stderr.write = oldStderrWrite
+
+        socket.end()
+
     })
-    socket.on(STDERR, msg => {
-      messageQueue.push({type: STDERR, message: removeTrailingNewLine(msg)})
+
+    this.server.on("error", e => {
+        if (e.code === "EADDRINUSE") {
+            const testServerSocket = new net.Socket()
+            testServerSocket.on("error", e => {
+                if (e.code == "ECONNREFUSED") {
+                    fs.unlinkSync(socketName)
+                    this.server.listen(socketName)
+                }
+            })
+            testServerSocket.connect(
+                { path: socketName },
+                function() {
+                    console.log("A server is running, shutting down...")
+                    process.exit(100)
+                }
+            )
+        }
     })
 
-  })
-
-
-io.listen(3334)
-
-// send messages to server
-const connectClient = () => {
-  const client_socket = client_io.connect("http://localhost:3334/supplier-channel")
-
-  // TODO add possibility for middleware translating, filtering etc. output of
-  // build application
-  const unhook_intercept = intercept(
-    txt => {
-      client_socket.emit(STDOUT, txt)
-      return txt
-    },
-    error_txt => {
-      client_socket.emit(STDERR, error_txt)
-      return error_txt
-    }
-  )
-
-  client_socket.on("disconnect", () => {
-    console.log("disconnecting...")
-  })
-
-  return new Promise((resolve, reject) => {
-    client_socket.on("connect", () => {
-      // TODO: what do we do with reconnects? Collect output until
-      // connection is reetablished (per socket that was connected
-      // earlier) and rerelease the messages on reconnect?
-      // How is this compatible to do a single-run to check if the last
-      // build was ok?
-      resolve(client_socket)
+    this.server.on('listening', (m) => {
+        // console.info('Mbuild server listetning on what:', socketName)
     })
-  })
+
+    this.server.listen(socketName)
+
+    process.once("SIGUSR2", () => {
+      this.server.close()
+      process.kill(process.pid, "SIGUSR2")
+    })
 }
 
-exports.connectClient = connectClient
+exports.Mbuild = Mbuild
