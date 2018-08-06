@@ -1,25 +1,30 @@
 const { socketName } = require("./shared/socketName")
 const net = require("net")
 
+/*
 const STDOUT = 'stdout'
 const STDERR = 'stderr'
+*/
 
 const clientSocket = new net.Socket()
-
-clientSocket.on('error', (e) => { // handle error trying to talk to server
-    console.error(e)
-    process.exit()
-})
 
 // something like this to translate to stdout / stderr:
 // clientSocket.pipe(STREAM WRITE FUNCTIONALITY(split up stream to stdout and
 // stderr))
-clientSocket.pipe(process.stdout)
-
-clientSocket.on('finish', () => {console.log('got finish...')})
 
 clientSocket.connect({path: socketName}, function() { 
-    console.log('got connection...')
+    console.log('>>> got connection...')
+})
+
+clientSocket.pipe(process.stdout)
+
+clientSocket.on('finish', () => {
+    console.log('>>> got finish...')
+})
+
+clientSocket.on('error', (e) => { // handle error trying to talk to server
+    console.error(e)
+    process.exit()
 })
 
 // clean up on nodemon restart
