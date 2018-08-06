@@ -14,8 +14,16 @@ async function logging() {
 
     console.log('and then some stuff...')
 
-    await setTimeout(async () => {
-        await console.log(`trying to emit something else later`)
-        await console.error(`trying to emit an error later`)
-    }, 3000)
+    await sleep(() => {
+        console.log(`trying to emit something else later`)
+        console.error(`trying to emit an error later`)
+    })
+}
+
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+async function sleep(fn, ...args) {
+    await timeout(2000)
+    return fn(...args)
 }
