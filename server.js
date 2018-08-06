@@ -14,7 +14,7 @@ const monkeyConsole = require("./lib/monkeyConsole")
 
 monkeyC = new monkeyConsole()
 
-function Mbuild(callback) {
+function Mbuild(buildCallback) {
     this.server = net.createServer(async socket => {
         // for debugging
         console.log("Mbuild: client connected...")
@@ -27,7 +27,7 @@ function Mbuild(callback) {
         console.log(`second server test (before release)`)
         console.log(`third server test (after release)`)
 
-        await callback()
+        await buildCallback()
 
         // Push `null` to stream to end the streams?
         console.log('ending soon')
