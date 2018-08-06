@@ -12,21 +12,14 @@ const { Writable } = require('stream');
 const { socketName } = require("./shared/socketName")
 const monkeyConsole = require("./lib/monkeyConsole")
 
-const oldstdout = process.stdout
-
-const STDOUT = "stdout"
-const STDERR = "stderr"
-
 monkeyC = new monkeyConsole()
+
 function Mbuild(callback) {
     this.callback = callback
     this.server = net.createServer(async socket => {
         // for debugging
         console.log("Mbuild: client connected...")
         // for debugging
-        socket.on("end", () => {
-            console.log("Mbuild: client disconnected...")
-        })
 
         monkeyC.hijack()
         monkeyC.stdout.pipe(socket)
@@ -43,6 +36,9 @@ function Mbuild(callback) {
         monkeyC.release()
         socket.end()
 
+        socket.on("end", () => {
+            console.log("Mbuild: client disconnected...")
+        })
     })
 
     this.server.on("error", e => {
@@ -72,8 +68,8 @@ function Mbuild(callback) {
 
     // nodemon restart handling
     process.once("SIGUSR2", () => {
-      this.server.close()
-      process.kill(process.pid, "SIGUSR2")
+        this.server.close()
+        process.kill(process.pid, "SIGUSR2")
     })
 }
 
