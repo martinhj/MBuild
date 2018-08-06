@@ -21,7 +21,9 @@ function Mbuild(buildCallback) {
         // for debugging
 
         monkeyC.hijack()
+
         monkeyC.stdout.pipe(socket)
+        monkeyC.stderr.pipe(socket)
 
         console.log(`first server test`)
         console.log(`second server test (before release)`)
