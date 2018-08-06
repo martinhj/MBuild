@@ -2,12 +2,14 @@
   "name": "error-socket-interface",
   "version": "1.0.1",
   "description": "",
+  "homepage": "https://github.com/martinhj/MBuild#readme",
   "main": "index.js",
+  "repository": "github:martinhj/MBuild",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Martin Holt Juliussen",
   "license": "ISC",
   "dependencies": {
     "chalk": "^2.4.1"
