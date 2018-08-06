@@ -1,9 +1,3 @@
-// Do I need following to catch rest of exceptions?
-/* process.on('uncaughtException', function(err) {
-    console.error((err && err.stack) ? err.stack : err);
-}); */
-// (https://stackoverflow.com/questions/32719923/redirecting-stdout-to-file-nodejs#answer-35542360)
-
 const net = require("net")
 const path = require("path")
 const os = require("os")
