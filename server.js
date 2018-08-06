@@ -15,7 +15,6 @@ const monkeyConsole = require("./lib/monkeyConsole")
 monkeyC = new monkeyConsole()
 
 function Mbuild(callback) {
-    this.callback = callback
     this.server = net.createServer(async socket => {
         // for debugging
         console.log("Mbuild: client connected...")
@@ -41,6 +40,8 @@ function Mbuild(callback) {
         })
     })
 
+    this.server.listen(socketName)
+
     this.server.on("error", e => {
         if (e.code === "EADDRINUSE") {
             const testServerSocket = new net.Socket()
@@ -60,11 +61,6 @@ function Mbuild(callback) {
         }
     })
 
-    this.server.on('listening', (m) => {
-        // console.info('Mbuild server listetning on what:', socketName)
-    })
-
-    this.server.listen(socketName)
 
     // nodemon restart handling
     process.once("SIGUSR2", () => {
