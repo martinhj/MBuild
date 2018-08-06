@@ -25,14 +25,9 @@ function Mbuild(buildCallback) {
         monkeyC.stdout.pipe(socket)
         monkeyC.stderr.pipe(socket)
 
-        console.log(`first server test`)
-        console.log(`second server test (before release)`)
-        console.log(`third server test (after release)`)
-
         await buildCallback()
 
         // Push `null` to stream to end the streams?
-        console.log('ending soon')
 
         monkeyC.release()
         socket.end()
@@ -62,7 +57,6 @@ function Mbuild(buildCallback) {
             )
         }
     })
-
 
     // nodemon restart handling
     process.once("SIGUSR2", () => {
